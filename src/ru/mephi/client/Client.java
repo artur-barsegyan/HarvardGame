@@ -11,14 +11,14 @@ public class Client {
     private boolean isEnd = false;
 
 //    Get connection to the server, create buffered streams for convenient communication
-    public void startConnection(String ip, int port) throws IOException {
+    void startConnection(String ip, int port) throws IOException {
         clientSocket = new Socket(ip, port);
         out = new PrintWriter(clientSocket.getOutputStream(), true);
         in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
     }
 
 //    Send input to the server, print response and check it
-    public void sendMessage(String msg) throws IOException, ClassNotFoundException {
+    void sendMessage(String msg) throws IOException, ClassNotFoundException {
         out.println(msg);
 
         String serverMsg = in.readLine();
@@ -39,6 +39,7 @@ public class Client {
             return;
         }
 
+        System.out.println("Hello! Please type your email, press enter, and after that, type your number and press enter again:");
         Scanner scanner = new Scanner(System.in);
         while (!client.isEnd()) {
             String inputLine = scanner.nextLine();

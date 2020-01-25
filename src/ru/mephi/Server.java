@@ -60,6 +60,7 @@ public class Server {
      void start(int port) throws IOException {
         serverSocket = new ServerSocket(port);
         serverSocket.setSoTimeout(2000);
+        System.out.println("Server was started");
         while (true) {
             Socket client = null;
             try {
