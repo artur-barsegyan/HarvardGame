@@ -19,19 +19,20 @@ public class Server {
     private ServerSocket serverSocket;
     private Queue<GameData> data = new ConcurrentLinkedQueue<>();
     private List<Session> sessions = new LinkedList<>();
+    private GameData winner = null;
 
 //    Wait threads with clients
-    void waitClients() {
-        while (true) {
-            try {
-                for (Session session : sessions) {
-                    session.join();
-                }
-
-                break;
-            } catch (InterruptedException e) {}
-        }
-    }
+//    void waitClients() {
+//        while (true) {
+//            try {
+//                for (Session session : sessions) {
+//                    session.join();
+//                }
+//
+//                break;
+//            } catch (InterruptedException e) {}
+//        }
+//    }
 
 //    Calculate the winner based on the client results
     void calculateResult() {
@@ -44,7 +45,6 @@ public class Server {
         avg = avg / data.size();
 
         float dist = Float.MAX_VALUE;
-        GameData winner = null;
         for (GameData data: data) {
             float curDist = Math.abs(avg - data.getDigit());
             if (curDist < dist) {
@@ -67,8 +67,9 @@ public class Server {
                 client = serverSocket.accept();
             } catch (SocketTimeoutException e) {
                 if (data.size() > 5) {
-                    waitClients();
+//                    waitClients();
                     calculateResult();
+                    notifyMembers();
                     return;
                 }
             } catch (IOException e) {
@@ -84,6 +85,26 @@ public class Server {
         }
     }
 
+    // Notify member and handle IO troubles
+    private void notifyMember(Session session) {
+        try {
+            if (session.data.getEmail().equals(winner.getEmail())) {
+                session.out.println("You win");
+            } else {
+                session.out.println("You lose");
+            }
+        } catch (Exception e) {
+            System.out.printf("Problems with notifying %s: probably he's closed the connection", session.data.getEmail());
+        }
+    }
+
+    // Notify all members about them status
+    private void notifyMembers() {
+        for (Session session : sessions) {
+            notifyMember(session);
+        }
+    }
+
     public static void main(String[] args) throws IOException {
         Server server = new Server();
         server.start(8888);
@@ -95,6 +116,7 @@ public class Server {
         private BufferedReader in;
         private Queue<GameData> queueData;
         private GameData data = new GameData();
+        private boolean isWaitingStatus = false;
 
         Session(Socket socket, Queue<GameData> queueData) throws SocketException {
             this.clientSocket = socket;
@@ -117,6 +139,11 @@ public class Server {
                 out = new PrintWriter(clientSocket.getOutputStream(), true);
                 in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
                 while (!clientSocket.isClosed()) {
+                    if (isWaitingStatus) {
+                        Thread.sleep(1000);
+                        continue;
+                    }
+
                     String inputLine = in.readLine();
                     if (inputLine == null) {
                         continue;
@@ -142,18 +169,18 @@ public class Server {
 
                             System.out.printf("Number %f is correct\n", number);
                             data.setDigit(number);
+                            out.println("OK");
                         } catch (NumberFormatException e) {
                             out.println("Error: It's not a float number");
                             break;
                         }
 
                         queueData.add(data);
-                        out.println("Bye");
-                        break;
+                        isWaitingStatus = true;
                     }
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+//                e.printStackTrace();
             } finally {
                 try {
                     in.close();

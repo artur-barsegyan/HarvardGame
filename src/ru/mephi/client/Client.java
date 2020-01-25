@@ -17,15 +17,18 @@ public class Client {
         in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
     }
 
+    // get the status of the game
+    String getGameStatus() throws IOException {
+        return in.readLine();
+    }
+
 //    Send input to the server, print response and check it
-    void sendMessage(String msg) throws IOException, ClassNotFoundException {
+    void sendMessage(String msg) throws IOException, GameError {
         out.println(msg);
 
         String serverMsg = in.readLine();
-        System.out.println(serverMsg);
-
-        if (serverMsg.contains("Error") || serverMsg.equals("Bye")) {
-            isEnd = true;
+        if (serverMsg.contains("Error")) {
+            throw new GameError(serverMsg);
         }
     }
 
@@ -39,17 +42,23 @@ public class Client {
             return;
         }
 
-        System.out.println("Hello! Please type your email, press enter, and after that, type your number and press enter again:");
+        System.out.println("Hello! Please type your email:");
         Scanner scanner = new Scanner(System.in);
-        while (!client.isEnd()) {
-            String inputLine = scanner.nextLine();
-            client.sendMessage(inputLine);
-        }
-    }
 
-//    The criteria of the end of the game
-    private boolean isEnd() {
-        return isEnd;
+        try {
+            String email = scanner.nextLine();
+            client.sendMessage(email);
+
+            System.out.println("Please type your number:");
+            String number = scanner.nextLine();
+            client.sendMessage(number);
+
+            System.out.println(client.getGameStatus());
+        } catch (GameError e) {
+            System.out.println(e.getMessage());
+        } catch (IOException e ) {
+            System.out.println("Error: server is down");
+        }
     }
 }
 
